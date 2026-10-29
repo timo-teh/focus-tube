@@ -143,3 +143,15 @@ Focus Tube charge donc sa page de lecteur avec pour base `https://com.focustube.
 de bundle, voir `Sources/FocusTube/Player/PlayerOrigin.swift`). Cette adresse ne pointe vers aucun
 serveur : elle sert uniquement d'identité, pratique employée par plusieurs SDK pour les applications
 natives. Aucune requête n'est envoyée ailleurs que vers YouTube.
+
+## Lecteur sans suggestions et commentaires (version 1.1)
+
+- Le lecteur YouTube est réduit à une surface d'affichage (`controls=0`, `disablekb=1`) et ne reçoit
+  jamais la souris : les bandeaux « Plus de vidéos », « Regarder sur YouTube » et « Copier le lien »
+  ne peuvent ni apparaître ni être cliqués. En pause et à la fin, une surcouche opaque le recouvre.
+- Les commandes (lecture/pause, position, volume, vitesse plafonnée à 1,5×, plein écran) sont
+  fournies par Focus Tube et passent uniquement par l'API officielle du lecteur.
+  Raccourcis : `Espace`, `←`/`→` (±10 s), `F` (plein écran), `Échap` (retour à la recherche).
+- Les commentaires de la vidéo sont affichés sous la description (auteur, ancienneté, texte,
+  réponses), sans aucun compteur. Chaque page coûte 1 unité de quota. Tri et taille de page dans
+  `Sources/FocusTube/Config/CommentsConfig.swift`.

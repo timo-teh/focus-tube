@@ -32,6 +32,14 @@ enum YouTubeAPIError: LocalizedError {
     }
 }
 
+/// Réponse minimale de videos.list avec `part=id` (utilisée pour valider la clé).
+private struct VideoIDListResponse: Decodable {
+    let items: [Item]
+    struct Item: Decodable {
+        let id: String
+    }
+}
+
 /// Client minimal de l'API YouTube Data v3.
 /// Deux appels seulement : search.list (100 unités) et videos.list (1 unité).
 /// Aucun flux vidéo n'est jamais téléchargé : seules les métadonnées transitent ici.
@@ -79,7 +87,8 @@ final class YouTubeAPIService {
         return response.items
     }
 
-    /// Vérifie qu'une clé fonctionne avec un appel à 1 unité (videos.list sur une vidéo connue).
+    /// Vérifie qu'une clé fonctionne avec un appel à 1 unité (videos.list, part=id).
+    /// La réponse ne contient que l'identifiant : on la décode avec un type dédié.
     func validate(apiKey: String) async throws {
         var components = URLComponents(string: baseURL + "/videos")!
         components.queryItems = [
@@ -87,7 +96,8 @@ final class YouTubeAPIService {
             URLQueryItem(name: "id", value: "jNQXAC9IVRw"), // « Me at the zoo », première vidéo YouTube
             URLQueryItem(name: "key", value: apiKey)
         ]
-        let _: VideoListResponse = try await perform(url: components.url!)
+        let response: VideoIDListResponse = try await perform(url: components.url!)
+        guard !response.items.isEmpty else { throw YouTubeAPIError.invalidResponse }
     }
 
     // MARK: - Interne

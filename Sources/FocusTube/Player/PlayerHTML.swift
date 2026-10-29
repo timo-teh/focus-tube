@@ -2,7 +2,7 @@ import Foundation
 
 /// Page HTML minimale qui héberge le lecteur officiel YouTube (IFrame Player API).
 ///
-/// Le lecteur est une simple « surface d'affichage » (`controls=0`, `disablekb=1`). Toutes les
+/// Le lecteur utilise ses commandes natives (`controls=1`, `disablekb=0`). Les
 /// commandes passent par les fonctions `ft…` appelées depuis Swift ; les événements remontent
 /// par le message handler `focusTube`. Aucun flux n'est téléchargé ni décodé par l'application.
 ///
@@ -91,7 +91,7 @@ enum PlayerHTML {
             // ── Création (et re-création) du lecteur ────────────────────────────────
             function ftCreatePlayer(startSeconds) {
               var vars = {
-                autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, iv_load_policy: 3,
+                autoplay: 1, controls: 1, disablekb: 0, fs: 0, rel: 0, iv_load_policy: 3,
                 modestbranding: 1, playsinline: 1, enablejsapi: 1, origin: window.location.origin
               };
               if (ftAudioLanguage) { vars.hl = ftAudioLanguage; }

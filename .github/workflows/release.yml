@@ -1,4 +1,4 @@
-name: Release
+name: Publication macOS
 
 on:
   push:
@@ -9,35 +9,66 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Compiler et publier Focus Tube
+  release:
+    name: Construire et publier le DMG
     runs-on: macos-14
 
     steps:
-      - name: Récupérer le code
+      - name: Récupérer le dépôt
         uses: actions/checkout@v4
 
-      - name: Afficher les versions des outils
-        run: |
-          sw_vers
-          xcodebuild -version
-          swift --version
+      - name: Afficher la version de Xcode
+        run: xcodebuild -version
 
-      - name: Compiler le bundle universel
+      - name: Vérifier et extraire la version du tag
+        id: version
+        shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          chmod +x Scripts/build-app.sh
-          ./Scripts/build-app.sh "$VERSION"
+          set -euo pipefail
 
-      - name: Publier dans GitHub Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.zip
-          generate_release_notes: true
-          body: |
-            ## Installation
-            1. Téléchargez le fichier `.zip` ci-dessous et décompressez-le.
-            2. Glissez `FocusTube.app` dans `/Applications`.
-            3. Au premier lancement, faites **clic droit › Ouvrir** (l'application n'est pas notarisée),
-               ou exécutez `xattr -cr /Applications/FocusTube.app` dans le Terminal.
-            4. Saisissez votre clé YouTube Data API v3 (voir le README).
+          TAG="${GITHUB_REF_NAME}"
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag invalide : $TAG"
+            echo "Utilise un tag comme v1.0.0."
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Construire l'application et le DMG
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          chmod +x Scripts/build-release.sh
+          bash Scripts/build-release.sh "$VERSION"
+
+      - name: Publier le DMG dans GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload \
+              "$RELEASE_TAG" \
+              dist/FocusTube.dmg \
+              --clobber
+          else
+            gh release create \
+              "$RELEASE_TAG" \
+              dist/FocusTube.dmg \
+              --title "Focus Tube $RELEASE_TAG" \
+              --notes "Version $RELEASE_TAG de Focus Tube pour macOS 13 et versions ultérieures.
+
+          Compatible Apple Silicon et Intel.
+
+          Cette application n'est pas signée avec un certificat Developer ID et n'est pas notariée. macOS peut afficher un avertissement ou empêcher son ouverture."
+          fi

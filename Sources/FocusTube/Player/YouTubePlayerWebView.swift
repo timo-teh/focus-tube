@@ -2,14 +2,6 @@ import SwiftUI
 import AppKit
 import WebKit
 
-/// WKWebView qui ignore totalement la souris : aucun clic ni survol n'atteint l'iframe YouTube.
-/// Les bandeaux « Plus de vidéos », « Regarder sur YouTube », « Copier le lien » ne peuvent donc
-/// ni apparaître au survol ni être cliqués. Tout le pilotage passe par `PlayerControlBar`.
-final class NonInteractiveWebView: WKWebView {
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-    override var acceptsFirstResponder: Bool { false }
-}
-
 /// Pont SwiftUI ↔ WKWebView pour le lecteur officiel YouTube.
 struct YouTubePlayerWebView: NSViewRepresentable {
     @ObservedObject var viewModel: PlayerViewModel
@@ -23,7 +15,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "focusTube")
         configuration.mediaTypesRequiringUserActionForPlayback = []
 
-        let webView = NonInteractiveWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.underPageBackgroundColor = .black

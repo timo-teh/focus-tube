@@ -1,0 +1,33 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj
+
+# Sorties de build
+dist/
+*.app
+*.zip
+*.dmg
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Divers
+*.log
+*.orig

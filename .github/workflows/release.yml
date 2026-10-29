@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Compiler et publier Focus Tube
+    runs-on: macos-14
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Afficher les versions des outils
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Compiler le bundle universel
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          chmod +x Scripts/build-app.sh
+          ./Scripts/build-app.sh "$VERSION"
+
+      - name: Publier dans GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+          body: |
+            ## Installation
+            1. Téléchargez le fichier `.zip` ci-dessous et décompressez-le.
+            2. Glissez `FocusTube.app` dans `/Applications`.
+            3. Au premier lancement, faites **clic droit › Ouvrir** (l'application n'est pas notarisée),
+               ou exécutez `xattr -cr /Applications/FocusTube.app` dans le Terminal.
+            4. Saisissez votre clé YouTube Data API v3 (voir le README).

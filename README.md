@@ -60,7 +60,7 @@ coûte **101 unités** (100 pour `search.list` + 1 pour `videos.list`), soit env
 ## Compiler avec Xcode
 
 ```bash
-git clone https://github.com/VOTRE_UTILISATEUR/focus-tube.git
+git clone https://github.com/timo-teh/focus-tube.git
 cd focus-tube
 open Package.swift
 ```

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Barre de contrôle de Focus Tube, en niveaux de gris. Remplace entièrement celle de YouTube.
-/// Lecture/pause, position, temps, volume, vitesse (plafonnée) et plein écran.
+/// Lecture/pause, position, temps, volume, sous-titres, langue audio, vitesse (plafonnée), plein écran.
 struct PlayerControlBar: View {
     @ObservedObject var viewModel: PlayerViewModel
     let isFullScreen: Bool
@@ -39,6 +39,9 @@ struct PlayerControlBar: View {
                 .frame(width: 80)
                 .help("Volume")
 
+            captionsMenu
+            audioMenu
+
             Picker("", selection: rateBinding) {
                 ForEach(AppConfig.allowedPlaybackRates, id: \.self) { rate in
                     Text("\(rate.formatted())×").tag(rate)
@@ -60,20 +63,69 @@ struct PlayerControlBar: View {
         .disabled(!viewModel.isReady)
     }
 
+    // MARK: - Sous-titres
+
+    /// Menu « Sous-titres » : désactivés ou l'une des pistes proposées par YouTube (clic simple = bascule : touche C).
+    private var captionsMenu: some View {
+        Menu {
+            if viewModel.captionTracks.isEmpty {
+                Text("Aucun sous-titre disponible pour cette vidéo")
+            } else {
+                Picker("Sous-titres", selection: captionsBinding) {
+                    Text("Désactivés").tag("")
+                    ForEach(viewModel.captionTracks) { track in
+                        Text(track.name).tag(track.code)
+                    }
+                }
+                .pickerStyle(.inline)
+            }
+        } label: {
+            Image(systemName: viewModel.captionsEnabled ? "captions.bubble.fill" : "captions.bubble")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Theme.textSecondary)
+                .frame(width: 26, height: 26)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(viewModel.captionsEnabled ? "Sous-titres activés (C)" : "Sous-titres désactivés (C)")
+    }
+
+    // MARK: - Audio
+
+    /// Menu « Audio » : automatique ou une langue de `LanguagesConfig.audioLanguages`.
+    /// YouTube joue le doublage correspondant s'il existe, sinon la piste originale.
+    private var audioMenu: some View {
+        Menu {
+            Picker("Langue audio", selection: audioBinding) {
+                Text("Automatique").tag("")
+                ForEach(LanguagesConfig.audioLanguages, id: \.code) { language in
+                    Text(language.name).tag(language.code)
+                }
+            }
+            .pickerStyle(.inline)
+            Divider()
+            Text("Doublage joué s'il existe pour la vidéo, sinon piste originale")
+        } label: {
+            Image(systemName: viewModel.audioLanguage == nil ? "waveform" : "waveform.badge.magnifyingglass")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Theme.textSecondary)
+                .frame(width: 26, height: 26)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Langue audio (si disponible)")
+    }
+
     // MARK: - Liaisons
 
     private var progressBinding: Binding<Double> {
-        Binding(
-            get: { viewModel.displayedTime },
-            set: { viewModel.sliderValueChanged($0) }
-        )
+        Binding(get: { viewModel.displayedTime }, set: { viewModel.sliderValueChanged($0) })
     }
 
     private var volumeBinding: Binding<Double> {
-        Binding(
-            get: { viewModel.isMuted ? 0 : viewModel.volume },
-            set: { viewModel.setVolume($0) }
-        )
+        Binding(get: { viewModel.isMuted ? 0 : viewModel.volume }, set: { viewModel.setVolume($0) })
     }
 
     private var rateBinding: Binding<Double> {
@@ -84,6 +136,14 @@ struct PlayerControlBar: View {
             },
             set: { viewModel.setPlaybackRate($0) }
         )
+    }
+
+    private var captionsBinding: Binding<String> {
+        Binding(get: { viewModel.captionSelection }, set: { viewModel.selectCaptions($0) })
+    }
+
+    private var audioBinding: Binding<String> {
+        Binding(get: { viewModel.audioSelection }, set: { viewModel.selectAudioLanguage($0) })
     }
 
     private var volumeIcon: String {

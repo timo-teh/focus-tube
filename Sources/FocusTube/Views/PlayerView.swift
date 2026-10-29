@@ -231,6 +231,8 @@ struct PlayerView: View {
                 .keyboardShortcut(.rightArrow, modifiers: [])
             Button("") { toggleFullScreen() }
                 .keyboardShortcut("f", modifiers: [])
+            Button("") { viewModel.toggleCaptions() }
+                .keyboardShortcut("c", modifiers: [])
         }
         .frame(width: 0, height: 0)
         .opacity(0)

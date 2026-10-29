@@ -155,3 +155,13 @@ natives. Aucune requête n'est envoyée ailleurs que vers YouTube.
 - Les commentaires de la vidéo sont affichés sous la description (auteur, ancienneté, texte,
   réponses), sans aucun compteur. Chaque page coûte 1 unité de quota. Tri et taille de page dans
   `Sources/FocusTube/Config/CommentsConfig.swift`.
+
+## Sous-titres et langue audio (version 1.2)
+
+- Menu **Sous-titres** dans la barre de contrôle (ou touche `C`) : désactivés, ou l'une des pistes
+  proposées par YouTube pour la vidéo (y compris générées automatiquement). Réglages par défaut dans
+  `Sources/FocusTube/Config/LanguagesConfig.swift`.
+- Menu **Audio** : l'API du lecteur intégré n'expose pas les pistes audio. Focus Tube recharge le
+  lecteur (à la même position) avec la langue choisie ; YouTube joue le doublage correspondant
+  lorsque le créateur en a fourni un, sinon la piste originale. La liste des langues proposées se
+  modifie dans le même fichier.

@@ -1,6 +1,13 @@
 import Foundation
 import Combine
 
+/// Une piste de sous-titres proposée par YouTube pour la vidéo en cours.
+struct CaptionTrack: Identifiable, Equatable {
+    let code: String
+    let name: String
+    var id: String { code }
+}
+
 /// ViewModel du lecteur.
 /// Reçoit les événements du lecteur IFrame (via JavaScript) et lui envoie des commandes.
 /// C'est lui, et non le lecteur YouTube, qui alimente la barre de contrôle de l'application.
@@ -29,6 +36,13 @@ final class PlayerViewModel: ObservableObject {
     /// Position visée pendant que l'utilisateur déplace le curseur.
     @Published var scrubTime: Double = 0
 
+    // Sous-titres et audio
+    @Published private(set) var captionTracks: [CaptionTrack] = []
+    @Published private(set) var captionsEnabled = LanguagesConfig.captionsOnByDefault
+    @Published private(set) var captionLanguage: String? = LanguagesConfig.preferredCaptionLanguage
+    /// nil = langue du système (choix automatique de YouTube).
+    @Published private(set) var audioLanguage: String? = nil
+
     /// Exécute du JavaScript dans la WKWebView. Injecté par `YouTubePlayerWebView`.
     var jsExecutor: ((String) -> Void)?
 
@@ -50,12 +64,19 @@ final class PlayerViewModel: ObservableObject {
         }
     }
 
-    /// Temps affiché : la position visée pendant un déplacement, sinon la position réelle.
     var displayedTime: Double { isScrubbing ? scrubTime : currentTime }
+
+    /// Valeur du menu « Sous-titres » : "" = désactivés, sinon le code de langue.
+    var captionSelection: String {
+        guard captionsEnabled else { return "" }
+        return captionLanguage ?? captionTracks.first?.code ?? ""
+    }
+
+    /// Valeur du menu « Audio » : "" = automatique.
+    var audioSelection: String { audioLanguage ?? "" }
 
     // MARK: - Événements venant du JavaScript
 
-    /// Message reçu du lecteur : `{ event: String, data: Any? }`.
     func handle(message: [String: Any]) {
         guard let event = message["event"] as? String else { return }
 
@@ -84,6 +105,19 @@ final class PlayerViewModel: ObservableObject {
             guard let rate = message["data"] as? Double else { return }
             enforceRateLimit(rate)
 
+        case "captions":
+            guard let data = message["data"] as? [String: Any] else { return }
+            let raw = data["tracks"] as? [[String: Any]] ?? []
+            var seen = Set<String>()
+            captionTracks = raw.compactMap { item in
+                guard let code = item["code"] as? String, !code.isEmpty, !seen.contains(code) else { return nil }
+                seen.insert(code)
+                return CaptionTrack(code: code, name: (item["name"] as? String) ?? code)
+            }
+            if captionsEnabled, captionLanguage == nil, let current = data["current"] as? String, !current.isEmpty {
+                captionLanguage = current
+            }
+
         case "error":
             let code = message["data"] as? Int ?? -1
             state = .error(errorMessage(forCode: code))
@@ -93,7 +127,6 @@ final class PlayerViewModel: ObservableObject {
         }
     }
 
-    /// Codes de l'IFrame API : -1 non démarré, 0 terminé, 1 lecture, 2 pause, 3 chargement, 5 en file.
     private func updateState(fromYouTubeCode code: Int) {
         switch code {
         case 0:
@@ -107,7 +140,6 @@ final class PlayerViewModel: ObservableObject {
         schedulePauseOverlay()
     }
 
-    /// Surcouche de pause avec un léger délai (évite un clignotement lors d'un simple déplacement).
     private func schedulePauseOverlay() {
         pauseOverlayTask?.cancel()
         guard state == .paused else {
@@ -145,13 +177,8 @@ final class PlayerViewModel: ObservableObject {
 
     // MARK: - Commandes vers le lecteur (API officielle uniquement)
 
-    func play() {
-        jsExecutor?("ftPlay();")
-    }
-
-    func pause() {
-        jsExecutor?("ftPause();")
-    }
+    func play() { jsExecutor?("ftPlay();") }
+    func pause() { jsExecutor?("ftPause();") }
 
     func togglePlayPause() {
         switch state {
@@ -178,7 +205,6 @@ final class PlayerViewModel: ObservableObject {
         seek(to: displayedTime + delta)
     }
 
-    /// Appelé par le curseur de progression : début (true) et fin (false) du déplacement.
     func sliderEditingChanged(_ editing: Bool) {
         if editing {
             scrubTime = currentTime
@@ -189,7 +215,6 @@ final class PlayerViewModel: ObservableObject {
         }
     }
 
-    /// Nouvelle valeur du curseur (déplacement en cours ou touche clavier sur le curseur).
     func sliderValueChanged(_ seconds: Double) {
         scrubTime = seconds
         if !isScrubbing {
@@ -219,9 +244,38 @@ final class PlayerViewModel: ObservableObject {
         jsExecutor?(isMuted ? "ftMute();" : "ftUnmute();")
     }
 
+    // MARK: - Sous-titres et audio
+
+    /// "" désactive les sous-titres ; sinon active la piste dont le code est donné.
+    func selectCaptions(_ code: String) {
+        let safe = Self.sanitize(code)
+        if safe.isEmpty {
+            captionsEnabled = false
+            jsExecutor?("ftCaptionsOff();")
+        } else {
+            captionsEnabled = true
+            captionLanguage = safe
+            jsExecutor?("ftCaptionsOn('\(safe)');")
+        }
+    }
+
+    func toggleCaptions() {
+        selectCaptions(captionsEnabled ? "" : (captionLanguage ?? captionTracks.first?.code ?? ""))
+    }
+
+    /// "" = automatique. Recharge le lecteur à la même position.
+    func selectAudioLanguage(_ code: String) {
+        let safe = Self.sanitize(code)
+        audioLanguage = safe.isEmpty ? nil : safe
+        jsExecutor?("ftSetAudioLanguage(\(safe.isEmpty ? "null" : "'\(safe)'"));")
+    }
+
+    private static func sanitize(_ code: String) -> String {
+        code.filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
+    }
+
     // MARK: - Formatage
 
-    /// « 12:34 » ou « 1:05:20 ».
     static func format(_ seconds: Double) -> String {
         let total = max(Int(seconds.rounded(.down)), 0)
         let hours = total / 3600

@@ -100,6 +100,8 @@ final class PlayerViewModel: ObservableObject {
         case 5: return "Le lecteur HTML5 a rencontré une erreur."
         case 100: return "Cette vidéo est introuvable ou privée."
         case 101, 150: return "L'auteur n'autorise pas la lecture de cette vidéo en dehors de YouTube."
+        case 152, 153:
+            return "YouTube n'a pas pu identifier l'application (code 152/153). Relancez Focus Tube ; si le problème persiste, installez la dernière version."
         default: return "Erreur de lecture (code \(code))."
         }
     }

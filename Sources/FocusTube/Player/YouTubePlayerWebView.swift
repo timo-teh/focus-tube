@@ -33,7 +33,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
 
         // Le baseURL youtube.com est requis par l'IFrame API pour accepter l'intégration.
         let html = PlayerHTML.render(videoId: viewModel.video.id)
-        webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com"))
+        webView.loadHTMLString(html, baseURL: PlayerOrigin.url)
 
         return webView
     }

@@ -72,7 +72,7 @@ enum PlayerHTML {
                         fs: 1,
                         playsinline: 1,
                         enablejsapi: 1,
-                        origin: 'https://www.youtube.com'
+                        origin: window.location.origin
                     },
                     events: {
                         'onReady': onPlayerReady,

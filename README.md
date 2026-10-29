@@ -60,7 +60,7 @@ coûte **101 unités** (100 pour `search.list` + 1 pour `videos.list`), soit env
 ## Compiler avec Xcode
 
 ```bash
-git clone https://github.com/timo-teh/focus-tube.git
+git clone https://github.com/VOTRE_UTILISATEUR/focus-tube.git
 cd focus-tube
 open Package.swift
 ```
@@ -134,3 +134,12 @@ Ajoutez ou retirez un identifiant YouTube pour élargir ou restreindre le filtre
 ## Licence
 
 MIT — voir [LICENSE](LICENSE).
+
+## Note technique : identification auprès du lecteur YouTube
+
+Depuis 2025, YouTube exige que toute page intégrant son lecteur envoie un en-tête HTTP `Referer`
+en https identifiant le site ou l'application hôte ; sinon le lecteur affiche l'erreur 152 ou 153.
+Focus Tube charge donc sa page de lecteur avec pour base `https://com.focustube.app` (son identifiant
+de bundle, voir `Sources/FocusTube/Player/PlayerOrigin.swift`). Cette adresse ne pointe vers aucun
+serveur : elle sert uniquement d'identité, pratique employée par plusieurs SDK pour les applications
+natives. Aucune requête n'est envoyée ailleurs que vers YouTube.
